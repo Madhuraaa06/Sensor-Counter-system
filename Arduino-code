@@ -1,0 +1,42 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <HX711_ADC.h>
+
+int x = 0;
+int input = A0;
+int state = LOW; // Initialize state to LOW
+
+LiquidCrystal_I2C lcd(0x27, 16, 2); // Set the LCD address to 0x27 for a 16 chars and 2 line display
+HX711_ADC LoadCell(6, 7); // Parameters: dt pin 6, sck pin 7;
+
+void setup() {
+  lcd.init(); // Initialize the LCD
+  lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print("Count : ");
+  lcd.setCursor(8, 0); // Move cursor to position 8 on the first line
+  lcd.print(x);
+
+  LoadCell.begin(); // Start connection to HX711
+  LoadCell.start(2000); // Load cells gets 2000ms of time to stabilize
+  LoadCell.setCalFactor(1000.0); // Calibration factor for load cell => dependent on your individual setup
+}
+
+void loop() {
+  int counter = analogRead(input); // Read analog input from the load cell
+
+  if (counter > 500 && state == LOW) { // If input value exceeds a threshold and previous state was LOW
+    x++; // Increment counter
+    lcd.setCursor(8, 0);
+    lcd.print(x);
+    state = HIGH; // Update state
+  } else if (counter <= 500) { // If input value is below the threshold
+    state = LOW; // Update state
+  }
+
+  LoadCell.update(); // Retrieves data from the load cell
+  float weight = LoadCell.getData(); // Get output value
+  lcd.setCursor(0, 1); // Set cursor to second row
+  lcd.print("Weight[g]:"); // Print out to LCD
+  lcd.print(weight); // Print out the retrieved value to the second row
+}
